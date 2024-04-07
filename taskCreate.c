@@ -4,18 +4,50 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <string.h>
+#include <stdbool.h>
 
 #define MAX_USERS 100
 #define MAX_TRANSACTIONS 1000
 #define MAX_LINE_LENGTH 100
 
-typedef struct Transaction {
-    char account_number[20]; 
+typedef struct Transaction
+{
+    int user;
+    char account_number[20];
     char transaction_type[20];
     int amount;
-    char recipient_account[20]; 
+    char recipient_account[20];
 } Transaction;
 
+bool value_exists(char arr[][20], int size, char *value)
+{
+    for (int i = 0; i < size; i++)
+    {
+        if (strcmp(arr[i], value) == 0)
+        {
+            return true; // Value found
+        }
+    }
+    return false; // Value not found
+}
+
+int find_index(char userArray[][20], int num_users, char* value) {
+    for (int i = 0; i < num_users; i++) {
+        if (strcmp(userArray[i], value) == 0) {
+            return i; // Return the index where the value is found
+        }
+    }
+    return -1; // Return -1 if the value is not found
+}
+
+void printUserArray(char userArray[][20], int numUniqueUsers)
+{
+    printf("Unique User Account Numbers:\n");
+    for (int i = 0; i < numUniqueUsers; i++)
+    {
+        printf("%d: %s\n", i + 1, userArray[i]);
+    }
+}
 
 int read_input_file(char *input_file, int *num_users, Transaction transactions[], int *num_transactions)
 {
@@ -30,49 +62,15 @@ int read_input_file(char *input_file, int *num_users, Transaction transactions[]
 
     *num_transactions = 0;
     char line[MAX_LINE_LENGTH];
-    // while (fgets(line, MAX_LINE_LENGTH, fp))
-    // {
-    //     int account_number;
-    //     char transaction_type[20];
-    //     int amount;
-    //     int recipient_account;
+    char userArray[*num_users][20]; // Array of strings
+    int numUniqueUsers = 0;         // Track the number of unique users
 
-    //     if (sscanf(line, "%d %s %d %d", &account_number, transaction_type, &amount, &recipient_account) == 4)
-    //     {
-    //         transactions[*num_transactions].account_number = account_number;
-    //         strcpy(transactions[*num_transactions].transaction_type, transaction_type);
-    //         transactions[*num_transactions].amount = amount;
-    //         transactions[*num_transactions].recipient_account = recipient_account;
-    //         (*num_transactions)++;
-    //     }
-    //     else if (sscanf(line, "%d %s %d", &account_number, transaction_type, &amount) == 3)
-    //     {
-    //         transactions[*num_transactions].account_number = account_number;
-    //         strcpy(transactions[*num_transactions].transaction_type, transaction_type);
-    //         transactions[*num_transactions].amount = amount;
-    //         transactions[*num_transactions].recipient_account = -1;
-    //         (*num_transactions)++;
-    //     }
-    //     else if (sscanf(line, "%d %s", &account_number, transaction_type) == 2)
-    //     {
-    //         transactions[*num_transactions].account_number = account_number;
-    //         strcpy(transactions[*num_transactions].transaction_type, transaction_type);
-    //         transactions[*num_transactions].amount = 0;
-    //         transactions[*num_transactions].recipient_account = -1;
-    //         (*num_transactions)++;
-    //     }
-    //     else
-    //     {
-    //         printf("Failed to parse line: %s\n", line);
-    //         continue; // Skip this line if it doesn't match any format.
-    //     }
-    // }
     while (fgets(line, MAX_LINE_LENGTH, fp))
     {
         char account_number[20];
         char transaction_type[20];
-        int amount = 0;                
-        char recipient_account[20] = ""; 
+        int amount = 0;
+        char recipient_account[20] = "";
 
         // First, try to parse lines with all four elements: account, transaction, amount, recipient
         if (sscanf(line, "%s %s %d %s", account_number, transaction_type, &amount, recipient_account) == 4)
@@ -102,9 +100,20 @@ int read_input_file(char *input_file, int *num_users, Transaction transactions[]
         transactions[*num_transactions].amount = amount;
         strcpy(transactions[*num_transactions].recipient_account, recipient_account);
 
+        if (!value_exists(userArray, numUniqueUsers, account_number))
+        {
+            if (numUniqueUsers < *num_users)
+            {                                                        // Ensure we don't exceed allocated space
+                strcpy(userArray[numUniqueUsers++], account_number); // Add new account number
+                transactions[*num_transactions].user = find_index(userArray, numUniqueUsers, account_number);;
+
+            }
+        } else {
+            transactions[*num_transactions].user = find_index(userArray, numUniqueUsers, account_number);
+        }
         (*num_transactions)++;
-        printf("Processed transaction for account number: %s, Type: %s\n", account_number, transaction_type);
     }
+
     fclose(fp);
     return 1;
 }
@@ -122,15 +131,14 @@ void create_child_processes(int num_users, Transaction transactions[], int num_t
             printf("User %d amount.\n", transactions[0].amount);
             for (int j = 0; j < num_transactions; j++)
             {
-                // if (transactions[j].account_number == i + 1)
-                // {
-                    printf("Transaction type: %s, Account: %s, Amount: %d, Recipient: %s\n",
+                if (transactions[j].user == i) {
+                    printf("Transaction type: %s, Account: %s, Amount: %d, Recipient: %s, user: %d\n",
                            transactions[j].transaction_type,
                            transactions[j].account_number,
                            transactions[j].amount,
-                           transactions[j].recipient_account);
+                           transactions[j].recipient_account, transactions[j].user);
                     // Perform the transaction
-                //}
+                }
             }
             printf("User %d finished.\n", i + 1);
             exit(0);
@@ -147,26 +155,4 @@ void create_child_processes(int num_users, Transaction transactions[], int num_t
             exit(1);
         }
     }
-}
-
-int main(int argc, char *argv[])
-{
-    if (argc != 2)
-    {
-        printf("Usage: %s <input_file>\n", argv[0]);
-        return 1;
-    }
-
-    int num_users;
-    Transaction transactions[MAX_TRANSACTIONS];
-    int num_transactions;
-
-    if (!read_input_file(argv[1], &num_users, transactions, &num_transactions))
-    {
-        return 1;
-    }
-
-    create_child_processes(num_users, transactions, num_transactions);
-
-    return 0;
 }
