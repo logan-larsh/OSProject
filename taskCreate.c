@@ -1,3 +1,10 @@
+/*
+Author Name: Cole Aldridge
+Email: cole.aldridge@okstate.edu
+Date: 04/07/2024
+Program Description: CS 4323 Group Project
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
