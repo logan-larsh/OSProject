@@ -1,3 +1,12 @@
+
+/*
+Author Name: Cole Aldridge
+Email: cole.aldridge@okstate.edu
+Date: 04/07/2024
+Program Description: Default driver.c file is utilized to read in the commands list and instiantiate the 
+process manager.
+*/
+
 #include <stdio.h>
 #include "taskCreate.c"
 
