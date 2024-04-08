@@ -1,8 +1,9 @@
-//ipc.c
-//Work in progress...
-//Assigned to Logan Larsh
-//Notes: Interfaces with the taskCreate.c to read the transaction types and save them to memory.
-
+/*
+Author Name: Logan Larsh
+Email: logan.larsh@okstate.edu
+Date: 04/07/2024
+Program Description: Implementation of IPC for banker program. Still needing to add balance tracking.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,15 +17,14 @@
 #include "transaction.h"
 
 #define SHMSZ 1024
+#define KEY 2375 // Use the same key value for both functions
 
-
-//Creates shared memory and saves tasks to it.  Will add balance checking and logic.
+// Creates shared memory and saves tasks to it. Will add balance checking and logic.
 void log_transaction(Transaction *transaction)
 {
     int shmid;
-    key_t key;
+    key_t key = KEY;
     char *shm;
-    key = 2375;
 
     if ((shmid = shmget(key, SHMSZ, IPC_CREAT | 0666)) < 0)
     {
@@ -50,14 +50,12 @@ void log_transaction(Transaction *transaction)
     shmdt(shm);
 }
 
-
-//Prints out the balances and commands executed upon process completion.
+// Prints out the balances and commands executed upon process completion.
 void read_shared_memory()
 {
     int shmid;
-    key_t key;
+    key_t key = KEY;
     char *shm;
-    key = 5678;
 
     if ((shmid = shmget(key, SHMSZ, 0666)) < 0)
     {
@@ -72,7 +70,6 @@ void read_shared_memory()
     }
 
     printf("Shared Memory Contents:\n%s\n", shm);
-
     shmdt(shm);
     shmctl(shmid, IPC_RMID, NULL);
 }

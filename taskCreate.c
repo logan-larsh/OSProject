@@ -146,19 +146,29 @@ void *child_process(void *arg) {
 
 void create_child_processes(int num_users, Transaction transactions[], int num_transactions)
 {
-    pthread_t threads[num_transactions];
-
     initMonitor(&monitor);
+    pid_t pid;
 
     for (int i = 0; i < num_transactions; i++)
     {
-        pthread_create(&threads[i], NULL, child_process, (void *)&transactions[i]);
+        pid = fork();
+
+        if (pid == 0)
+        {
+            child_process((void *)&transactions[i]);
+            exit(0);
+        }
+        else if (pid < 0)
+        {
+            perror("fork");
+            exit(1);
+        }
     }
 
-    for (int i = 0; i < num_transactions; i++)
-    {
-        pthread_join(threads[i], NULL);
+    int status;
+    pid_t wpid;
+    while ((wpid = wait(&status)) > 0);
+    if(pid != 0){
+        read_shared_memory();
     }
-
-    read_shared_memory();
 }
