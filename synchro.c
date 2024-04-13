@@ -1,8 +1,8 @@
 /*
+Group E
 Author Name: Joshua Hernandez
 Email: joshua.r.hernandez@okstate.edu
 Date: 04/07/2024
-Program Description: CS 4323 Group Project
 */
 
 #include <pthread.h>
