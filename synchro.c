@@ -1,15 +1,8 @@
 /*
-<<<<<<< HEAD
-Group E
-Author Name: Joshua Hernandez
-Email: joshua.r.hernandez@okstate.edu
-Date: 04/07/2024
-=======
 Author Name: Joshua Hernandez
 Email: joshua.r.hernandez@okstate.edu
 Date: 04/07/2024
 Program Description: CS 4323 Group Project
->>>>>>> main
 */
 
 #include <pthread.h>
@@ -41,10 +34,6 @@ void giveKey(Monitor *monitor) {
 void takeKey(Monitor *monitor) {
     // Unlock mutex
     pthread_mutex_unlock(&monitor->mutex);
-<<<<<<< HEAD
-
-=======
->>>>>>> main
 }
 
 void enqueueMonitorQueue(Monitor *monitor, int processId) {
@@ -74,18 +63,4 @@ void displayQueueStatus(Monitor *monitor) {
             printf(" %d", monitor->queue[i]);
         printf("\n");
     }
-<<<<<<< HEAD
-}
-
-int main() {
-    Monitor monitor;
-    initMonitor(&monitor);
-
-    giveKey(&monitor);
-
-    takeKey(&monitor);
-
-    return 0;
-=======
->>>>>>> main
 }
