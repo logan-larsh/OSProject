@@ -8,6 +8,7 @@ typedef struct Transaction
     char transaction_type[20];
     int amount;
     char recipient_account[20];
+    int balance;
 } Transaction;
 
 #endif

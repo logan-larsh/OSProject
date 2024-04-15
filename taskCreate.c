@@ -155,23 +155,31 @@ void create_child_processes(int num_users, Transaction transactions[], int num_t
 {
     initMonitor(&monitor);
     pid_t pid;
+    clear_shared_memory(9997);
+    clear_shared_memory(9998);
+    clear_shared_memory(9999);
 
-    for (int i = 0; i < num_transactions; i++)
+    for (int i = 0; i < num_users; i++)
     {
-        pid = fork();
+        pid_t pid = fork();
 
         if (pid == 0)
         {
-            child_process((void *)&transactions[i]);
+            for (int j = 0; j < num_transactions; j++)
+            {
+                if (transactions[j].user == i) {
+                    child_process((void *)&transactions[j]);
+                }
+            }
             exit(0);
         }
         else if (pid < 0)
         {
-            perror("fork");
+            printf("Fork failed.\n");
             exit(1);
         }
     }
-
+    
     int status;
     pid_t wpid;
     while ((wpid = wait(&status)) > 0);
