@@ -123,11 +123,11 @@ int read_input_file(char *input_file, int *num_users, Transaction transactions[]
 
 
 void perform_transaction(Transaction *transaction) {
-    //printf("Transaction type: %s, Account: %s, Amount: %d, Recipient: %s, user: %d\n",
-           //transaction->transaction_type,
-           //transaction->account_number,
-           //transaction->amount,
-           //transaction->recipient_account, transaction->user);
+    printf("Transaction type: %s, Account: %s, Amount: %d, Recipient: %s, user: %d\n",
+           transaction->transaction_type,
+           transaction->account_number,
+           transaction->amount,
+           transaction->recipient_account, transaction->user);
 
            log_transaction(transaction);
     // Perform the transaction
@@ -178,6 +178,7 @@ void create_child_processes(int num_users, Transaction transactions[], int num_t
             printf("Fork failed.\n");
             exit(1);
         }
+        
     }
     
     int status;
