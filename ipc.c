@@ -61,10 +61,27 @@ void remove_blank_lines(char *str) {
     }
 }
 
+void add_newline(char *str) {
+    int len = strlen(str);
+    char result[2 * len];
+    int j = 0;
+
+    for (int i = 0; i < len; i++) {
+        result[j++] = str[i];
+        if (strncmp(str + i + 1, "Account", 7) == 0) {
+            if (i == 0 || str[i - 1] != '\n') {
+                result[j++] = '\n';
+            }
+        }
+    }
+    result[j] = '\0';
+    strcpy(str, result);
+}
+
 void deposit(Transaction *transaction, char *shm_accounts, char *shm_executions, int current_length_executions){
     int current_balance = 0;
     char *account_start = strstr(shm_accounts, transaction->account_number);
-    printf("Deposit command ref: %s\n", account_start);
+
 
 
     if (account_start != NULL) {
@@ -84,22 +101,27 @@ void deposit(Transaction *transaction, char *shm_accounts, char *shm_executions,
 
         size_t section_length = end - start;
         size_t remaining_length = strlen(shm_accounts) - section_length;
+
+        sscanf(account_start, "%*[^:]: %d", &current_balance);
+
         memmove(start, end, remaining_length + 1);
+
+        
 
         remove_blank_lines(shm_accounts);
 
         size_t current_length_accounts = strlen(shm_accounts);
 
-        printf("%s", shm_accounts);
-
         shm_executions += current_length_executions;
 
-        sscanf(account_start, "%*[^:]: %d", &current_balance);
+
+
+        
         
         sprintf(shm_executions, "Deposit initiated in amount of %d to account %s with balance of %d\n", 
             transaction->amount, transaction->account_number, current_balance);
         current_balance += transaction->amount;
-        sprintf(shm_accounts + current_length_accounts, "Account: %s, Balance: %d",
+        sprintf(shm_accounts + current_length_accounts, "Account: %s, Balance: %d\n",
                 transaction->account_number, current_balance);
         
 
@@ -114,7 +136,6 @@ void deposit(Transaction *transaction, char *shm_accounts, char *shm_executions,
 void tranDeposit(Transaction *transaction, char *shm_accounts, char *shm_executions, int current_length_executions){
     int current_balance = 0;
     char *account_start = strstr(shm_accounts, transaction->recipient_account);
-    printf("Deposit command ref: %s\n", account_start);
 
 
     if (account_start != NULL) {
@@ -134,29 +155,25 @@ void tranDeposit(Transaction *transaction, char *shm_accounts, char *shm_executi
 
         size_t section_length = end - start;
         size_t remaining_length = strlen(shm_accounts) - section_length;
+
+        sscanf(account_start, "%*[^:]: %d", &current_balance);
+
         memmove(start, end, remaining_length + 1);
 
         remove_blank_lines(shm_accounts);
 
         size_t current_length_accounts = strlen(shm_accounts);
 
-        printf("%s", shm_accounts);
-
         shm_executions += current_length_executions;
 
-        sscanf(account_start, "%*[^:]: %d", &current_balance);
+        
         
         sprintf(shm_executions, "Deposit initiated in amount of %d to account %s with balance of %d\n", 
             transaction->amount, transaction->recipient_account, current_balance);
         current_balance += transaction->amount;
-        sprintf(shm_accounts + current_length_accounts, "Account: %s, Balance: %d",
+        sprintf(shm_accounts + current_length_accounts, "Account: %s, Balance: %d\n",
                 transaction->recipient_account, current_balance);
         
-
-    } else {
-        shm_executions += current_length_executions;
-
-        sprintf(shm_executions, "Can't Deposit to Account: Account number does not exist: %s\n", transaction->account_number);
 
     }
 }
@@ -164,7 +181,6 @@ void tranDeposit(Transaction *transaction, char *shm_accounts, char *shm_executi
 void withdraw(Transaction *transaction, char *shm_accounts, char *shm_executions, int current_length_executions){
     int current_balance = 0;
     char *account_start = strstr(shm_accounts, transaction->account_number);
-    printf("Withdraw command ref: %s\n", account_start);
 
 
     if (account_start != NULL) {
@@ -184,22 +200,23 @@ void withdraw(Transaction *transaction, char *shm_accounts, char *shm_executions
 
         size_t section_length = end - start;
         size_t remaining_length = strlen(shm_accounts) - section_length;
+
+        sscanf(account_start, "%*[^:]: %d", &current_balance);
+
         memmove(start, end, remaining_length + 1);
 
         remove_blank_lines(shm_accounts);
 
         size_t current_length_accounts = strlen(shm_accounts);
 
-        printf("%s", shm_accounts);
-
         shm_executions += current_length_executions;
 
-        sscanf(account_start, "%*[^:]: %d", &current_balance);
+        
         
         sprintf(shm_executions, "Withdraw initiated in amount of %d from account %s with balance of %d\n", 
             transaction->amount, transaction->account_number, current_balance);
         current_balance -= transaction->amount;
-        sprintf(shm_accounts + current_length_accounts, "Account: %s, Balance: %d",
+        sprintf(shm_accounts + current_length_accounts, "Account: %s, Balance: %d\n",
                 transaction->account_number, current_balance);
         
 
@@ -207,6 +224,46 @@ void withdraw(Transaction *transaction, char *shm_accounts, char *shm_executions
         shm_executions += current_length_executions;
 
         sprintf(shm_executions, "Can't Withdraw From Account: Account number does not exist: %s\n", transaction->account_number);
+
+    }
+}
+
+void close_account(Transaction *transaction, char *shm_accounts, char *shm_executions, int current_length_executions){
+    char *account_start = strstr(shm_accounts, transaction->account_number);
+
+
+    if (account_start != NULL) {
+
+        char *start = account_start;
+        while (start > shm_accounts && *start != '\n') {
+            start--;
+        }
+        if (start > shm_accounts) {
+            start++;
+        }
+
+        char *end = account_start + strlen(transaction->account_number);
+        while (*end != '\n' && *end != '\0') {
+            end++;
+        }
+
+        size_t section_length = end - start;
+        size_t remaining_length = strlen(shm_accounts) - section_length;
+
+        memmove(start, end, remaining_length + 1);
+
+        remove_blank_lines(shm_accounts);
+
+        size_t current_length_accounts = strlen(shm_accounts);
+
+        shm_executions += current_length_executions;
+        sprintf(shm_executions, "Succesfully Closed account %s\n", transaction->account_number);
+        
+
+    } else {
+        shm_executions += current_length_executions;
+
+        sprintf(shm_executions, "Can't Close Account: Account number does not exist: %s\n", transaction->account_number);
 
     }
 }
@@ -303,11 +360,15 @@ void log_transaction(Transaction *transaction)
 
             shm_executions += current_length_executions;
 
-            sprintf(shm_executions, "Transfer initiated in amount of %d from account %s to account %s\nBegin account actions now ->\n", 
+            sprintf(shm_executions, "** Transfer initiated in amount of %d from account %s to account %s\nBegin account actions now ->", 
                 transaction->amount, transaction->account_number, transaction->recipient_account);
 
             withdraw(transaction, shm_accounts, shm_executions, current_length_executions);
             tranDeposit(transaction, shm_accounts, shm_executions, current_length_executions);
+
+            current_length_executions = strlen(shm_executions);
+            shm_executions += current_length_executions;
+            sprintf(shm_executions, "<- Transfer Complete\n");
 
         } else {
             shm_executions += current_length_executions;
@@ -316,31 +377,38 @@ void log_transaction(Transaction *transaction)
 
         }
     }
+    else if (strcmp(transaction->transaction_type, "Inquiry") == 0) {
+
+        int current_balance = 0;
+        char *account_start = strstr(shm_accounts, transaction->account_number);
+
+
+        if (account_start != NULL){
+
+            shm_executions += current_length_executions;
+            sscanf(account_start, "%*[^:]: %d", &current_balance);
+            sprintf(shm_executions, "Inquiry Results for acount %s: %d\n", transaction->account_number, current_balance);
+            
+
+        } else {
+            shm_executions += current_length_executions;
+
+            sprintf(shm_executions, "Inquiry Failed, Account Number Not Found: %s\n", transaction->account_number);
+
+        }
+    }
+    else if (strcmp(transaction->transaction_type, "Close") == 0) {
+
+        close_account(transaction, shm_accounts, shm_executions, current_length_executions);
+    }
 
 
     shmdt(shm);
     shmdt(shm_accounts);
     shmdt(shm_executions);
-
-    usleep(1000);
 }
 
-void add_newline(char *str) {
-    int len = strlen(str);
-    char result[2 * len];
-    int j = 0;
 
-    for (int i = 0; i < len; i++) {
-        result[j++] = str[i];
-        if (strncmp(str + i + 1, "Account", 7) == 0) {
-            if (i == 0 || str[i - 1] != '\n') {
-                result[j++] = '\n';
-            }
-        }
-    }
-    result[j] = '\0';
-    strcpy(str, result);
-}
 
 void read_shared_memory()
 {
