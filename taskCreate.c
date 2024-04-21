@@ -139,14 +139,43 @@ void *child_process(void *arg) {
 
     printf("User %d started.\n", user_id + 1);
 
-
+    
     enqueueMonitorQueue(&monitor, user_id);
     displayQueueStatus(&monitor);
     giveKey(&monitor);
 
-    perform_transaction(transaction);
+    pid_t pid = fork();
+    pid_t parentPid;
+
+    pid_t waited_pid;
+    int status;
+
+    if(pid == 0){
+        parentPid = getppid();
+        perform_transaction(transaction);
+    }
+
+    if(pid > 0){
+        clockStart();
+        while(1){
+            waited_pid = waitpid(pid, &status, WNOHANG);
+
+            if (waited_pid == -1) {
+                perror("waitpid");
+                exit(1);
+            } else if(waited_pid == 0){
+                timeoutCheck(parentPid, &monitor);
+            }
+            else{
+                exit(0);
+            }
+        }
+    }
+
+    
     
     takeKey(&monitor);
+    dequeueMonitorQueue(&monitor);
     printf("User %d finished.\n", user_id + 1);
 
     return NULL;
@@ -164,8 +193,11 @@ void create_child_processes(int num_users, Transaction transactions[], int num_t
     {
         pid_t pid = fork();
 
+        
+
         if (pid == 0)
         {
+
             for (int j = 0; j < num_transactions; j++)
             {
                 if (transactions[j].user == i) {
@@ -188,4 +220,6 @@ void create_child_processes(int num_users, Transaction transactions[], int num_t
     if(pid != 0){
         read_shared_memory();
     }
+
+    cleanupMonitor(&monitor);
 }
