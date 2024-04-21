@@ -139,13 +139,14 @@ void *child_process(void *arg) {
 
     printf("User %d started.\n", user_id + 1);
 
-
+    
     enqueueMonitorQueue(&monitor, user_id);
     displayQueueStatus(&monitor);
     giveKey(&monitor);
 
     perform_transaction(transaction);
     
+    dequeueMonitorQueue(&monitor);
     takeKey(&monitor);
     printf("User %d finished.\n", user_id + 1);
 
