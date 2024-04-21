@@ -14,25 +14,31 @@ Date: 04/21/2024
 #include <time.h>
 
 #define MAX_QUEUE_SIZE 100
-#define SEM_NAME "/my_sem"
+#define SEM_NAME "/sem_synchronization"
+// Define timeout duration for 3 seconds
 #define TIMEOUT_DURATION 3
 
 // Global variable to store the PID of the current process
 pid_t currentProcess = -1;
 
+// Define monitor structure
 typedef struct {
     sem_t *mutex;
     int queue[MAX_QUEUE_SIZE];
     int front, rear;
 } Monitor;
 
+// Function to clean up monitor
 void cleanupMonitor(Monitor *monitor) {
     sem_close(monitor->mutex);
     sem_unlink(SEM_NAME);
 }
 
+// Function to initialize monitor
 void initMonitor(Monitor *monitor) {
+    // Clean up previous semaphore
     cleanupMonitor(monitor);
+    // Create semaphore
     monitor->mutex = sem_open(SEM_NAME, O_CREAT, 0644, 1);
     if (monitor->mutex == SEM_FAILED) {
         perror("sem_open");
@@ -44,9 +50,11 @@ void initMonitor(Monitor *monitor) {
 
 // Signal handler for SIGALRM
 void handleTimeout(pid_t pid, Monitor *monitor) {
+    // Check if process is holding key
     if (pid != -1) {
         printf("Process %d exceeded timeout. Terminating...\n", pid);
-        kill(pid, SIGKILL); // Terminate the process
+        // Terminate process
+        kill(pid, SIGKILL); 
     }
     if (sem_post(monitor->mutex) == -1) {
         perror("sem_post");
@@ -58,10 +66,12 @@ void handleTimeout(pid_t pid, Monitor *monitor) {
 clock_t start, end;
 double cpu_time_used;
 
+// Function to start the timer
 void clockStart(){
     start = clock();
 }
 
+// Function to check if the timeout has been exceeded
 void timeoutCheck(pid_t pid, Monitor *monitor){
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
@@ -71,8 +81,8 @@ void timeoutCheck(pid_t pid, Monitor *monitor){
     }
 }
 
+// Function to give key
 void giveKey(Monitor *monitor) {
-
     if (sem_wait(monitor->mutex) == -1) {
         perror("sem_wait");
         exit(1);
@@ -80,22 +90,23 @@ void giveKey(Monitor *monitor) {
 }
 
 
-
+// Function to take key
 void takeKey(Monitor *monitor) {
-    
-
     if (sem_post(monitor->mutex) == -1) {
         perror("sem_post");
         exit(1);
     }
 }
 
+// Function to enqueue an element
 void enqueueMonitorQueue(Monitor *monitor, int processId) {
+    // Give the key
     giveKey(monitor);
 
+    // Check for queueu overflow
     if (monitor->rear == MAX_QUEUE_SIZE - 1) {
-
         printf("Queue overflow\n");
+        // Take the key
         takeKey(monitor);
         return;
     }
@@ -106,18 +117,24 @@ void enqueueMonitorQueue(Monitor *monitor, int processId) {
     monitor->rear++;
     monitor->queue[monitor->rear] = processId;
 
+    // Take the key
     takeKey(monitor);
 }
 
+// Funtion to dequeue an element
 void dequeueMonitorQueue(Monitor *monitor) {
+    // Give the key
     giveKey(monitor);
 
+    // Check for queue underflow
     if (monitor->front == -1) {
         printf("Queue underflow\n");
+        // Take the key
         takeKey(monitor);
         return;
     }
 
+    // Assign process ID of element to dequeue
     int dequeuedProcessId = monitor->queue[monitor->front];
     
     if (monitor->front == monitor->rear) {
@@ -128,10 +145,13 @@ void dequeueMonitorQueue(Monitor *monitor) {
         monitor->front++;
     }
     
+    // Take the key
     takeKey(monitor);
 }
 
+// Function to display the queue status
 void displayQueueStatus(Monitor *monitor) {
+    // Give the key
     giveKey(monitor);
 
     printf("Monitor queue status:\n");
@@ -144,6 +164,7 @@ void displayQueueStatus(Monitor *monitor) {
         printf("\n");
     }
 
+    // Take the key
     takeKey(monitor);
 }
 
