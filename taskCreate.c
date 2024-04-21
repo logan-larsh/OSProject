@@ -146,8 +146,8 @@ void *child_process(void *arg) {
 
     perform_transaction(transaction);
     
-    dequeueMonitorQueue(&monitor);
     takeKey(&monitor);
+    dequeueMonitorQueue(&monitor);
     printf("User %d finished.\n", user_id + 1);
 
     return NULL;
