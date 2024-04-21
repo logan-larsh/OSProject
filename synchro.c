@@ -9,9 +9,15 @@ Date: 04/21/2024
 #include <stdlib.h>
 #include <semaphore.h>
 #include <fcntl.h>
+#include <signal.h>
+#include <unistd.h>
 
 #define MAX_QUEUE_SIZE 100
 #define SEM_NAME "/my_sem"
+#define TIMEOUT_DURATION 60
+
+// Global variable to store the PID of the current process
+pid_t currentProcess = -1;
 
 typedef struct {
     sem_t *mutex;
@@ -29,12 +35,35 @@ void initMonitor(Monitor *monitor) {
     monitor->front = monitor->rear = -1;
 }
 
+// Signal handler for SIGALRM
+void handleTimeout(int signum) {
+    if (currentProcess != -1) {
+        printf("Process %d exceeded timeout. Terminating...\n", currentProcess);
+        kill(currentProcess, SIGKILL); // Terminate the process
+    }
+}
+
+// Function to set the timer
+void startTimer() {
+    alarm(TIMEOUT_DURATION); // Set alarm for TIMEOUT_DURATION seconds
+}
+
+// Function to reset the timer
+void resetTimer() {
+    alarm(0); // Cancel the previous alarm
+    startTimer(); // Start a new timer
+}
+
 void giveKey(Monitor *monitor) {
 
     if (sem_wait(monitor->mutex) == -1) {
         perror("sem_wait");
         exit(1);
     }
+    // Store the PID of the current process
+    currentProcess = getpid(); 
+    // Reset the timer
+    resetTimer(); 
 }
 
 void takeKey(Monitor *monitor) {
@@ -43,6 +72,10 @@ void takeKey(Monitor *monitor) {
         perror("sem_post");
         exit(1);
     }
+    // Reset the PID of the process
+    currentProcess = -1; 
+    // Cancel the timer when a process releases the key
+    alarm(0); 
 }
 
 void enqueueMonitorQueue(Monitor *monitor, int processId) {
