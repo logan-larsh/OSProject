@@ -15,12 +15,13 @@ Program Description: CS 4323 Group Project
 #include "synchro.c"
 #include "ipc.c"
 #include "transaction.h"
+#include <sys/mman.h>
 
 #define MAX_USERS 100
 #define MAX_TRANSACTIONS 1000
 #define MAX_LINE_LENGTH 100
 
-Monitor monitor;
+Monitor *monitor;
 
 bool value_exists(char arr[][20], int size, char *value)
 {
@@ -140,18 +141,18 @@ void *child_process(void *arg) {
     printf("User %d started.\n", user_id + 1);
 
     
-    enqueueMonitorQueue(&monitor, user_id);
-    displayQueueStatus(&monitor);
-    giveKey(&monitor);
+    enqueueMonitorQueue(monitor, getppid());
+    displayQueueStatus(monitor);
+    giveKey(monitor);
 
     pid_t pid = fork();
-    pid_t parentPid;
+    pid_t childPid;
 
     pid_t waited_pid;
     int status;
 
     if(pid == 0){
-        parentPid = getppid();
+        childPid = getppid();
         perform_transaction(transaction);
     }
 
@@ -164,7 +165,7 @@ void *child_process(void *arg) {
                 perror("waitpid");
                 exit(1);
             } else if(waited_pid == 0){
-                timeoutCheck(parentPid, &monitor);
+                timeoutCheck(childPid, monitor);
             }
             else{
                 exit(0);
@@ -174,8 +175,8 @@ void *child_process(void *arg) {
 
     
     
-    takeKey(&monitor);
-    dequeueMonitorQueue(&monitor);
+    takeKey(monitor);
+    dequeueMonitorQueue(monitor);
     printf("User %d finished.\n", user_id + 1);
 
     return NULL;
@@ -183,6 +184,8 @@ void *child_process(void *arg) {
 
 void create_child_processes(int num_users, Transaction transactions[], int num_transactions)
 {
+    initMonitor(&monitor);
+    cleanupMonitor(monitor);
     initMonitor(&monitor);
     pid_t pid;
     clear_shared_memory(9997);
@@ -221,5 +224,5 @@ void create_child_processes(int num_users, Transaction transactions[], int num_t
         read_shared_memory();
     }
 
-    cleanupMonitor(&monitor);
+    cleanupMonitor(monitor);
 }

@@ -241,6 +241,7 @@ void withdraw(Transaction *transaction, char *shm_accounts, char *shm_executions
 void close_account(Transaction *transaction, char *shm_accounts, char *shm_executions, int current_length_executions){
     current_time = time(NULL);
     local_time = localtime(&current_time);
+    int current_balance = 0;
     char *account_start = strstr(shm_accounts, transaction->account_number);
 
 
@@ -262,6 +263,8 @@ void close_account(Transaction *transaction, char *shm_accounts, char *shm_execu
         size_t section_length = end - start;
         size_t remaining_length = strlen(shm_accounts) - section_length;
 
+        sscanf(account_start, "%*[^:]: %d", &current_balance);
+
         memmove(start, end, remaining_length + 1);
 
         remove_blank_lines(shm_accounts);
@@ -269,7 +272,7 @@ void close_account(Transaction *transaction, char *shm_accounts, char *shm_execu
         size_t current_length_accounts = strlen(shm_accounts);
 
         shm_executions += current_length_executions;
-        sprintf(shm_executions, "Succesfully Closed account %s | %s", transaction->account_number, asctime(local_time));
+        sprintf(shm_executions, "Succesfully Closed account %s with Balance = %d | %s", transaction->account_number, current_balance, asctime(local_time));
         
 
     } else {
@@ -441,7 +444,7 @@ void read_shared_memory()
         exit(1);
     }
 
-    printf("\nShared Memory Contents:\n%s\n", shm);
+    printf("\nRaw Data Contents:\n%s\n", shm);
     shmdt(shm);
     shmctl(shmid, IPC_RMID, NULL);
 
