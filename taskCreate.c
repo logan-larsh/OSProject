@@ -136,75 +136,104 @@ void perform_transaction(Transaction *transaction) {
 }
 
 void *child_process(void *arg) {
-    Transaction *transaction = (Transaction *)arg;  // Convert the void pointer back to a Transaction pointer.
-    int user_id = transaction->user;                // Extract the user id from the transaction.
+    // Convert the void pointer back to a Transaction pointer.
+    Transaction *transaction = (Transaction *)arg;
+    // Extract the user id from the transaction.
+    int user_id = transaction->user;
 
-    printf("User %d started.\n", user_id + 1);      // Notify that this user's process has started.
+    // Notify that this user's process has started.
+    printf("User %d started.\n", user_id + 1);      
 
-    enqueueMonitorQueue(monitor, getppid());        // Add the parent process ID to the monitor's queue.
-    displayQueueStatus(monitor);                    // Display the current status of the queue.
-    giveKey(monitor);                               // Grant access (or the 'key') to the process to perform operations.
+    // Add the parent process ID to the monitor's queue.
+    enqueueMonitorQueue(monitor, getppid());
+    // Display the current status of the queue.
+    displayQueueStatus(monitor);                    
+     // Grant access (or the 'key') to the process to perform operations.
+    giveKey(monitor);                              
 
-    pid_t pid = fork();                             // Fork a new process.
+     // Fork a new process.
+    pid_t pid = fork();                            
     pid_t childPid;
 
     pid_t waited_pid;
     int status;
 
-    if(pid == 0){                                   // Child process after fork
-        childPid = getppid();                       // Get parent PID for use in child operations.
-        perform_transaction(transaction);           // Execute the transaction logic.
+     // Child process after fork
+    if(pid == 0){ 
+         // Get parent PID for use in child operations.                                 
+        childPid = getppid();        
+        // Execute the transaction logic.              
+        perform_transaction(transaction);           
     }
 
-    if(pid > 0){                                    // Parent process after fork
-        clockStart();                               // Start a timer
+    // Parent process after fork
+    if(pid > 0){               
+         // Start a timer                     
+        clockStart();                              
         while(1){
-            waited_pid = waitpid(pid, &status, WNOHANG); // Non-blocking wait for child process to change state.
+            // Non-blocking wait for child process to change state.
+            waited_pid = waitpid(pid, &status, WNOHANG); 
 
             if (waited_pid == -1) {
-                perror("waitpid");                  // Error handling for waitpid failure.
+                 // Error handling for waitpid failure.
+                perror("waitpid");                 
                 exit(1);
             } else if(waited_pid == 0){
-                timeoutCheck(childPid, monitor);    // Check for timeouts and handle accordingly.
+                 // Check for timeouts and handle accordingly.
+                timeoutCheck(childPid, monitor);   
             }
             else{
-                exit(0);                            // Exit if child process has finished.
+                 // Exit if child process has finished.
+                exit(0);                           
             }
         }
     }
 
-    takeKey(monitor);                               // Retrieve the 'key' from the monitor post-transaction.
-    dequeueMonitorQueue(monitor);                   // Remove the entry from the monitor's queue.
-    printf("User %d finished.\n", user_id + 1);     // Notify that this user's process has finished.
-
-    return NULL;                                    // Return NULL as this is a void function.
+    // Retrieve the 'key' from the monitor post-transaction.
+    takeKey(monitor);                             
+    // Remove the entry from the monitor's queue.
+    dequeueMonitorQueue(monitor);                   
+    // Notify that this user's process has finished.
+    printf("User %d finished.\n", user_id + 1);     
+    // Return NULL as this is a void function.
+    return NULL;                                    
 }
 
 void create_child_processes(int num_users, Transaction transactions[], int num_transactions)
 {
-    initMonitor(&monitor);                          // Initialize the monitor structure.
-    cleanupMonitor(monitor);                        // Clean up any residual data in the monitor.
-    initMonitor(&monitor);                          // Re-initialize the monitor.
+    // Initialize the monitor structure.
+    initMonitor(&monitor);                          
+    // Clean up any residual data in the monitor.
+    cleanupMonitor(monitor);                        
+    // Re-initialize the monitor.
+    initMonitor(&monitor);                          
     pid_t pid;
-    clear_shared_memory(9997);                      // Clear shared memory.
+
+    // Clear shared memory.
+    clear_shared_memory(9997);                      
     clear_shared_memory(9998);
     clear_shared_memory(9999);
 
-    for (int i = 0; i < num_users; i++)             // Loop through each user.
+    // Loop through each user.
+    for (int i = 0; i < num_users; i++)             
     {
-        pid_t pid = fork();                         // Fork a new process for each user.
+        // Fork a new process for each user.
+        pid_t pid = fork();                         
 
-        if (pid == 0)                               // Child process
+        if (pid == 0)                               
         {
-            for (int j = 0; j < num_transactions; j++)  // Process each transaction for the user.
+            // Process each transaction for the user.
+            for (int j = 0; j < num_transactions; j++)  
             {
                 if (transactions[j].user == i) {
                     child_process((void *)&transactions[j]);  // Execute the transaction using child_process function.
                 }
             }
-            exit(0);                                // Exit child process after handling all transactions.
+             // Exit child process after handling all transactions.
+            exit(0);                               
         }
-        else if (pid < 0)                           // Error handling for fork failure.
+         // Error handling for fork failure.
+        else if (pid < 0)                          
         {
             printf("Fork failed.\n");
             exit(1);
@@ -213,10 +242,13 @@ void create_child_processes(int num_users, Transaction transactions[], int num_t
 
     int status;
     pid_t wpid;
-    while ((wpid = wait(&status)) > 0);             // Wait for all child processes to complete.
+    // Wait for all child processes to complete.
+    while ((wpid = wait(&status)) > 0);             
     if(pid != 0){
-        read_shared_memory();                       // Read shared memory after all children are done.
+        // Read shared memory after all children are done.
+        read_shared_memory();                       
     }
 
-    cleanupMonitor(monitor);                        // Clean up the monitor structure after all processes are done.
+    // Clean up the monitor structure after all processes are done.
+    cleanupMonitor(monitor);                       
 }
