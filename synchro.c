@@ -92,7 +92,7 @@ void clockStart(){
 }
 
 // Function to check if the timeout has been exceeded
-void timeoutCheck(pid_t pid, Monitor *monitor){
+int timeoutCheck(pid_t pid, Monitor *monitor){
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
 

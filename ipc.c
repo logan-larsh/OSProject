@@ -1,8 +1,9 @@
 /*
+Group E
 Author Name: Logan Larsh
 Email: logan.larsh@okstate.edu
 Date: 04/07/2024
-Program Description: Implementation of IPC for banker program. Still needing to add balance tracking.
+Program Description: CS 4323 Group Project
 */
 
 #include <time.h>
@@ -26,7 +27,7 @@ Program Description: Implementation of IPC for banker program. Still needing to 
 time_t current_time;
 struct tm *local_time;
 
-
+//Cleans shared memory
 void clear_shared_memory(key_t key) {
     int shmid;
     if ((shmid = shmget(key, 0, 0)) != -1) {
@@ -37,6 +38,7 @@ void clear_shared_memory(key_t key) {
     }
 }
 
+//Cleans the strings in memory
 void remove_blank_lines(char *str) {
     int i, j;
     int len = strlen(str);
@@ -65,6 +67,7 @@ void remove_blank_lines(char *str) {
     }
 }
 
+//Cleans the strings in memory
 void add_newline(char *str) {
     int len = strlen(str);
     char result[2 * len];
@@ -82,16 +85,24 @@ void add_newline(char *str) {
     strcpy(str, result);
 }
 
+//The following functions are the method calls for the types of transactions.  
+//If you scroll down to the log_transaction it's the where the actuall calling occurs. (Good place for waits to test deadlock)
+//------------------------------------------------------------------------------------------------------------------
+
+//Handles the logic of depositing funds to the user balance.
 void deposit(Transaction *transaction, char *shm_accounts, char *shm_executions, int current_length_executions){
     current_time = time(NULL);
     local_time = localtime(&current_time);
     int current_balance = 0;
+
+    //Assign account info to a temporary string.
     char *account_start = strstr(shm_accounts, transaction->account_number);
 
 
 
     if (account_start != NULL) {
 
+        //Manipulate strings in memory to isolate desired balance and remove current balance from shared memory to be added back in after modifications.
         char *start = account_start;
         while (start > shm_accounts && *start != '\n') {
             start--;
@@ -123,7 +134,7 @@ void deposit(Transaction *transaction, char *shm_accounts, char *shm_executions,
 
 
         
-        
+        //Apply modificatinos to shared memory
         sprintf(shm_executions, "Deposit initiated in amount of %d to account %s with balance of %d | %s", 
             transaction->amount, transaction->account_number, current_balance, asctime(local_time));
         current_balance += transaction->amount;
@@ -139,14 +150,18 @@ void deposit(Transaction *transaction, char *shm_accounts, char *shm_executions,
     }
 }
 
+//Deposit overloader to point to a recipient. Is used by the transfer logic.
 void tranDeposit(Transaction *transaction, char *shm_accounts, char *shm_executions, int current_length_executions){
     current_time = time(NULL);
     local_time = localtime(&current_time);
     int current_balance = 0;
+
+    //Assign account info to a temporary string.
     char *account_start = strstr(shm_accounts, transaction->recipient_account);
 
 
     if (account_start != NULL) {
+        //Manipulate strings in memory to isolate desired balance and remove current balance from shared memory to be added back in after modifications.
 
         char *start = account_start;
         while (start > shm_accounts && *start != '\n') {
@@ -186,14 +201,18 @@ void tranDeposit(Transaction *transaction, char *shm_accounts, char *shm_executi
     }
 }
 
+//Perform logic of deducing funds from an account in shared memory
 void withdraw(Transaction *transaction, char *shm_accounts, char *shm_executions, int current_length_executions){
     current_time = time(NULL);
     local_time = localtime(&current_time);
     int current_balance = 0;
+
+    //Assign account info to a temporary string.
     char *account_start = strstr(shm_accounts, transaction->account_number);
 
 
     if (account_start != NULL) {
+        //Manipulate strings in memory to isolate desired balance and remove current balance from shared memory to be added back in after modifications.
 
         char *start = account_start;
         while (start > shm_accounts && *start != '\n') {
@@ -238,14 +257,18 @@ void withdraw(Transaction *transaction, char *shm_accounts, char *shm_executions
     }
 }
 
+//Deletes an account from shared memory and returns the existing account balance for that account.
 void close_account(Transaction *transaction, char *shm_accounts, char *shm_executions, int current_length_executions){
     current_time = time(NULL);
     local_time = localtime(&current_time);
     int current_balance = 0;
+
+    //Assign account info to a temporary string.
     char *account_start = strstr(shm_accounts, transaction->account_number);
 
 
     if (account_start != NULL) {
+        //Manipulate strings in memory to isolate desired balance and remove current balance from shared memory to be added back in after modifications.
 
         char *start = account_start;
         while (start > shm_accounts && *start != '\n') {
@@ -283,6 +306,8 @@ void close_account(Transaction *transaction, char *shm_accounts, char *shm_execu
     }
 }
 
+//------------------------------------------------------------------
+//Core logic that the processes call on.
 void log_transaction(Transaction *transaction)
 {
     current_time = time(NULL);
@@ -293,6 +318,7 @@ void log_transaction(Transaction *transaction)
     key_t key_executions = KEY_EXECUTEDCOMMANDS;
     char *shm, *shm_accounts, *shm_executions;
 
+    //Attach to shared memory.
     if ((shmid = shmget(key, SHMSZ, IPC_CREAT | 0666)) < 0)
     {
         perror("shmget");
@@ -330,17 +356,19 @@ void log_transaction(Transaction *transaction)
     size_t current_length_executions = strlen(shm_executions);
     shm += current_length;
     
-
+    //Log raw data in shared memory.
     sprintf(shm, "Transaction type: %s, Account: %s, Amount: %d, Recipient: %s, user: %d\n",
             transaction->transaction_type,
             transaction->account_number,
             transaction->amount,
             transaction->recipient_account, transaction->user);
 
+    //The following if else block checks for the transaction type and performs appropriate logic and method calls.
     if (strcmp(transaction->transaction_type, "Create") == 0) {
-
+        //while(1);
         char *account_start = strstr(shm_accounts, transaction->account_number);
 
+        //Create account with starting balance if it does not already exist.
         if (account_start == NULL) {
             size_t current_length_accounts = strlen(shm_accounts);
             shm_executions += current_length_executions;
@@ -358,20 +386,23 @@ void log_transaction(Transaction *transaction)
         }
     }
     else if (strcmp(transaction->transaction_type, "Deposit") == 0) {
+        //while(1);
         deposit(transaction, shm_accounts, shm_executions, current_length_executions);
         
     }
     else if (strcmp(transaction->transaction_type, "Withdraw") == 0) {
+        //while(1);
         withdraw(transaction, shm_accounts, shm_executions, current_length_executions);
     }
     else if (strcmp(transaction->transaction_type, "Transfer") == 0) {
-
+        //while(1);
         int current_balance = 0;
         char *account_start = strstr(shm_accounts, transaction->account_number);
         char *recipient_start = strstr(shm_accounts, transaction->recipient_account);
 
 
         if (account_start != NULL && recipient_start != NULL){
+            //Prints information about transfer to shared memory and performs a parallel deposit/withdraw if the accounts exist.
 
             shm_executions += current_length_executions;
 
@@ -393,7 +424,9 @@ void log_transaction(Transaction *transaction)
         }
     }
     else if (strcmp(transaction->transaction_type, "Inquiry") == 0) {
+        //while(1);
 
+        //Used to print out the current contents of a balance to shared memory.
         int current_balance = 0;
         char *account_start = strstr(shm_accounts, transaction->account_number);
 
@@ -413,6 +446,7 @@ void log_transaction(Transaction *transaction)
         }
     }
     else if (strcmp(transaction->transaction_type, "Close") == 0) {
+        //while(1);
 
         close_account(transaction, shm_accounts, shm_executions, current_length_executions);
     }
@@ -423,7 +457,7 @@ void log_transaction(Transaction *transaction)
 }
 
 
-
+//The following logic block prints out all of the shared memories at program conclusion.
 void read_shared_memory()
 {
     int shmid, shmid_accounts, shmid_executions;

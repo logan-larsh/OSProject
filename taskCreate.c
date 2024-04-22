@@ -163,7 +163,7 @@ void *child_process(void *arg) {
          // Get parent PID for use in child operations.                                 
         childPid = getppid();        
         // Execute the transaction logic.              
-        perform_transaction(transaction);           
+        perform_transaction(transaction);      
     }
 
     // Parent process after fork
@@ -174,13 +174,18 @@ void *child_process(void *arg) {
             // Non-blocking wait for child process to change state.
             waited_pid = waitpid(pid, &status, WNOHANG); 
 
+            if(getppid() == 1){
+                exit(0);
+            }
+
+
             if (waited_pid == -1) {
                  // Error handling for waitpid failure.
                 perror("waitpid");                 
                 exit(1);
             } else if(waited_pid == 0){
                  // Check for timeouts and handle accordingly.
-                timeoutCheck(childPid, monitor);   
+                timeoutCheck(childPid, monitor);
             }
             else{
                  // Exit if child process has finished.
@@ -188,6 +193,8 @@ void *child_process(void *arg) {
             }
         }
     }
+
+
 
     // Retrieve the 'key' from the monitor post-transaction.
     takeKey(monitor);                             
@@ -243,7 +250,7 @@ void create_child_processes(int num_users, Transaction transactions[], int num_t
     int status;
     pid_t wpid;
     // Wait for all child processes to complete.
-    while ((wpid = wait(&status)) > 0);             
+    while ((wpid = wait(&status)) > 0);   
     if(pid != 0){
         // Read shared memory after all children are done.
         read_shared_memory();                       
