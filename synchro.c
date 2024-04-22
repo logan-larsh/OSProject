@@ -40,34 +40,41 @@ void cleanupMonitor(Monitor *monitor) {
 
 // Function to initialize monitor
 void initMonitor(Monitor **monitor) {
+    // Create a shared memory object
     int shm_fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0644);
     if (shm_fd == -1) {
         perror("shm_open");
         exit(1);
     }
-
+    
+    // Set size of the object
     if (ftruncate(shm_fd, sizeof(Monitor)) == -1) {
         perror("ftruncate");
         exit(1);
     }
 
+    // Map the object 
     *monitor = mmap(NULL, sizeof(Monitor), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
     if (*monitor == MAP_FAILED) {
         perror("mmap");
         exit(1);
     }
 
+    // Close the file descriptor
     close(shm_fd);
 
+    // Create a semaphore
     (*monitor)->mutex = sem_open(SEM_NAME, O_CREAT, 0644, 1);
     if ((*monitor)->mutex == SEM_FAILED) {
         perror("sem_open");
         exit(1);
     }
 
+    // Initialize front and rear pointer of queue to -1
     (*monitor)->front = (*monitor)->rear = -1;
 }
 
+// Function to handle timeout
 void handleTimeout(pid_t pid, Monitor *monitor) {
     // Check if process is holding key
     if (pid != -1) {
